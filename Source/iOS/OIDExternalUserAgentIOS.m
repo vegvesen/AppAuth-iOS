@@ -38,7 +38,6 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpartial-availability"
   __weak SFSafariViewController *_safariVC;
-  ASWebAuthenticationSession *_webAuthenticationVC;
 #pragma clang diagnostic pop
 }
 
@@ -62,37 +61,6 @@ NS_ASSUME_NONNULL_BEGIN
   _session = session;
   BOOL openedUserAgent = NO;
   NSURL *requestURL = [request externalUserAgentRequestURL];
-
-  // iOS 12 and later, use ASWebAuthenticationSession
-  if (@available(iOS 12.0, *)) {
-    // ASWebAuthenticationSession doesn't work with guided access (rdar://40809553)
-    if (!UIAccessibilityIsGuidedAccessEnabled()) {
-      __weak OIDExternalUserAgentIOS *weakSelf = self;
-      NSString *redirectScheme = request.redirectScheme;
-      ASWebAuthenticationSession *authenticationVC =
-          [[ASWebAuthenticationSession alloc] initWithURL:requestURL
-                                        callbackURLScheme:redirectScheme
-                                         completionHandler:^(NSURL * _Nullable callbackURL,
-                                                             NSError * _Nullable error) {
-        __strong OIDExternalUserAgentIOS *strongSelf = weakSelf;
-        if (!strongSelf) {
-            return;
-        }
-        strongSelf->_webAuthenticationVC = nil;
-        if (callbackURL) {
-          [strongSelf->_session resumeExternalUserAgentFlowWithURL:callbackURL];
-        } else {
-          NSError *safariError =
-              [OIDErrorUtilities errorWithCode:OIDErrorCodeUserCanceledAuthorizationFlow
-                               underlyingError:error
-                                   description:nil];
-          [strongSelf->_session failExternalUserAgentFlowWithError:safariError];
-        }
-      }];
-      _webAuthenticationVC = authenticationVC;
-      openedUserAgent = [authenticationVC start];
-    }
-  }
 
   // iOS 9 and 10, use SFSafariViewController
   if (@available(iOS 9.0, *)) {
@@ -129,16 +97,11 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpartial-availability"
   SFSafariViewController *safariVC = _safariVC;
-  ASWebAuthenticationSession *webAuthenticationVC = _webAuthenticationVC;
 #pragma clang diagnostic pop
   
   [self cleanUp];
   
-  if (webAuthenticationVC) {
-    // dismiss the ASWebAuthenticationSession
-    [webAuthenticationVC cancel];
-    if (completion) completion();
-  } else if (safariVC) {
+  if (safariVC) {
     // dismiss the SFSafariViewController
     [safariVC dismissViewControllerAnimated:YES completion:completion];
   } else {
