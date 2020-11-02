@@ -18,7 +18,11 @@
 
 #import "OIDURLQueryComponentTests.h"
 
-#import "Source/OIDURLQueryComponent.h"
+#if SWIFT_PACKAGE
+@import AppAuthCore;
+#else
+#import "Source/AppAuthCore/OIDURLQueryComponent.h"
+#endif
 
 // Ignore warnings about "Use of GNU statement expression extension" which is raised by our use of
 // the XCTAssert___ macros.
@@ -91,12 +95,12 @@ static NSString *const kTestURLRoot = @"https://www.example.com/";
       "stm4iiN_0Qi-n4mEo-jL-85CvQ&scope=%@&authuser=0&session_state=ab78c20&prompt=consent#";
 
   NSString *expectedDecodedScope =
-    @"https://www.example.com/auth/plus.me https://www.example.com/auth/userinfo.profile";
+    @"https://www.example.com/auth/userinfo.email https://www.example.com/auth/userinfo.profile";
   
   // Tests an encoded scope with a '+'-encoded space
   {
     NSString* encodedScope =
-        @"https://www.example.com/auth/plus.me+https://www.example.com/auth/userinfo.profile";
+        @"https://www.example.com/auth/userinfo.email+https://www.example.com/auth/userinfo.profile";
     NSString *authorizationResponse = [NSString stringWithFormat:responseURLtemplate,encodedScope];
     OIDURLQueryComponent *query =
         [[OIDURLQueryComponent alloc] initWithURL:[NSURL URLWithString:authorizationResponse]];
@@ -108,7 +112,7 @@ static NSString *const kTestURLRoot = @"https://www.example.com/";
   // Tests an encoded scope with a '%20'-encoded space
   {
     NSString* encodedScope =
-      @"https://www.example.com/auth/plus.me%20https://www.example.com/auth/userinfo.profile";
+      @"https://www.example.com/auth/userinfo.email%20https://www.example.com/auth/userinfo.profile";
     NSString *authorizationResponse = [NSString stringWithFormat:responseURLtemplate,encodedScope];
     OIDURLQueryComponent *query =
         [[OIDURLQueryComponent alloc] initWithURL:[NSURL URLWithString:authorizationResponse]];
